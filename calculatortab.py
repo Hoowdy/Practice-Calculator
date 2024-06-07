@@ -1,4 +1,7 @@
-from tkinter import Button, Entry, Frame, Label, Misc
+from tkinter import Button, Entry, Frame, Label, Misc, StringVar
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
+from matplotlib.projections import get_projection_names
 from typing import Any, Literal, Callable
 
 class CalculatorTab(Frame):
@@ -15,8 +18,20 @@ class CalculatorTab(Frame):
         self.entry_field.pack(fill= "both", expand= True)
         # self.entry_field.bind("<KeyRelease>", lambda e: None)
 
-        self.graph = Frame(self, background= "green")
-        self.graph.place(relheight=0.67, relwidth=0.67, rely=0.15)
+        self.graph_frame = Frame(self, background= "green")
+        self.graph_frame.place(relheight=0.67, relwidth=0.67, rely=0.15)
+
+        self.graph_canvas = FigureCanvasTkAgg(master= self.graph_frame)
+        self.graph_canvas.get_tk_widget().pack(fill= "both", expand= True)
+
+        if not self.graph_canvas.figure:
+            self.graph_canvas.figure = Figure(
+                # (self.graph_canvas.get_width_height[0] * self.graph_canvas.device_pixel_ratio,
+                # self.graph_canvas.get_width_height[1] * self.graph_canvas.device_pixel_ratio),
+                # self.graph_canvas.device_pixel_ratio
+            )
+        # axes = self.graph_canvas.figure.add_axes((-5, -5, 5, 5), projection= "rectilinear")
+        self.graph_canvas.figure.add_subplot()
 
         self.func_frame = Frame(self)
         self.func_frame.place(relheight=0.18, relwidth=0.67, rely=0.82)
@@ -43,3 +58,18 @@ class CalculatorTab(Frame):
         self.name = name
         self.brackets_button.configure(text= f"Br_calc[{self.name}]")
         self.calc_button.configure(text= f"Calc[{self.name}]")
+
+    def plot(self, variables : dict[str, list] = None):
+        if len(variables) != 2:
+            return
+        axes = self.graph_canvas.figure.get_axes()[0]
+        axes.plot(*variables.values(), scalex= True, scaley= True)
+        axes.set_aspect("equal")
+        self.graph_canvas.draw()
+    
+    def get_bounds(self):
+        bbox = self.graph_canvas.figure.get_axes()[0].bbox
+        return (
+            (-5, 5),
+            (-5, 5)
+            )

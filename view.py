@@ -4,10 +4,12 @@ from tkinter.ttk import Notebook
 from calculatortab import CalculatorTab
 
 class View:
-    def __init__(self, root : Tk):
+    def __init__(self, root : Tk, controller):
         self.root = root
+        self.controller = controller
         self.size = (800, 600)
         self.background = "#ffe0ca"
+        self.current_tab = None
         self.tab_count = 0
 
         self._setup_main_layout()
@@ -31,6 +33,7 @@ class View:
     def on_tab_chaged(self, event):
         if event.widget.select().split(".")[-1] == "add_tab":
             event.widget.select(len(event.widget.tabs()) - 2)
+        self.current_tab = event.widget.select()
     
     def on_tab_left_click(self, event):
         tab_index = event.widget.index(f"@{event.x},{event.y}")
@@ -40,6 +43,7 @@ class View:
     def add_tab(self):
         tab = CalculatorTab(self.notebook, str(self.tab_count))
         tab.pack(side= "top", fill="both", expand= True)
+        tab.entry_field.bind("<Key-Return>", lambda event: self.on_tab_entry_change(event))
         self.notebook.insert(len(self.notebook.tabs()) - 1, tab, text= str(self.tab_count))
         self.notebook.select(tab)
         self.tab_count += 1
@@ -71,3 +75,7 @@ class View:
         if event.widget.tab(tab_index, "text") == "+":
             return
         self.delete_tab(tab_index)
+
+    def on_tab_entry_change(self, event):
+        expression = event.widget.get()
+        self.controller.plot(expression, self.root.nametowidget(self.current_tab))
