@@ -1,12 +1,12 @@
 from tkinter import Tk
-from view import View
-from model import Model
+from View.view import View
+from Model.model import Model
 
 class Controller():
     def __init__(self):
         self.root = Tk()
         self.view = View(self.root, self)
-        self.model = Model()
+        self.model = Model(self)
 
     def run(self):
         self.root.mainloop()

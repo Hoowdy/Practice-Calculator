@@ -1,7 +1,7 @@
 from tkinter import Frame, Menu, Tk, simpledialog
 from tkinter.ttk import Notebook
 
-from calculatortab import CalculatorTab
+from View.calculatortab import CalculatorTab
 
 class View:
     def __init__(self, root : Tk, controller):

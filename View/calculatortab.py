@@ -1,6 +1,8 @@
 from tkinter import Button, Entry, Frame, Label, LabelFrame, Listbox, Misc, Variable
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+from matplotlib.lines import Line2D
+from .variables_panel import VariablesPanel
 
 class CalculatorTab(Frame):
     def __init__(self, master: Misc | None = None, name : str = None):
@@ -9,6 +11,7 @@ class CalculatorTab(Frame):
         #, cnf, background=background, bd=bd, bg=bg, border=border, borderwidth=borderwidth, class_=class_, colormap=colormap, container=container, cursor=cursor, height=height, highlightbackground=highlightbackground, highlightcolor=highlightcolor, highlightthickness=highlightthickness, name=name, padx=padx, pady=pady, relief=relief, takefocus=takefocus, visual=visual, width=width)
         # self.pack(anchor= "n", fill= "both")
         self.name = name
+        self.graph : Line2D = None
         self._setup_layout()
     
     def _setup_layout(self):
@@ -41,11 +44,12 @@ class CalculatorTab(Frame):
         axes.set_aspect("equal")
         axes.grid(True, axis= "both")
 
-        self.func_frame = Frame(self)
-        self.func_frame.place(relheight=0.18, relwidth=0.67, rely=0.82)
+        self.variables_panel = VariablesPanel(self)
+        self.variables_panel.place(relheight=0.18, relwidth=0.67, rely=0.82)
+        self.variables_panel.update_grid(["x", "y", "z", "a", "b", "c", "d", "e"])
 
-        self.func_label = Label(self.func_frame, font=10, background= "red")
-        self.func_label.pack(fill= "both", expand= True)
+        # self.func_label = Label(self.func_frame, font=10, background= "red")
+        # self.func_label.pack(fill= "both", expand= True)
 
         self.table_frame = Frame(self)
         self.table_frame.place(relheight=0.82, relwidth=0.33, relx=0.67, rely=0)
@@ -84,7 +88,10 @@ class CalculatorTab(Frame):
         if len(variables) != 2:
             return
         axes = self.graph_canvas.figure.get_axes()[0]
-        axes.plot(*variables.values())
+        if not self.graph:
+            self.graph = axes.plot(*variables.values())[0]
+        else:
+            self.graph.set_data(*variables.values())
         # axes.set_aspect("equal")
         self.graph_canvas.draw()
     
