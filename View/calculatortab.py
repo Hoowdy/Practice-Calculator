@@ -1,4 +1,5 @@
 from tkinter import Button, Entry, Frame, Label, LabelFrame, Listbox, Misc, Variable
+from typing import Any
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
@@ -46,7 +47,7 @@ class CalculatorTab(Frame):
 
         self.variables_panel = VariablesPanel(self)
         self.variables_panel.place(relheight=0.18, relwidth=0.67, rely=0.82)
-        self.variables_panel.update_grid(["x", "y", "z", "a", "b", "c", "d", "e"])
+        # self.variables_panel.update_grid(["x", "y", "z", "a", "b", "c", "d", "e"])
 
         # self.func_label = Label(self.func_frame, font=10, background= "red")
         # self.func_label.pack(fill= "both", expand= True)
@@ -79,6 +80,10 @@ class CalculatorTab(Frame):
         self.calc_button = Button(self.button_frame, text= f"Calc[{self.name}]")
         self.calc_button.pack(fill= "both", expand= True)
 
+    @property
+    def expression(self):
+        return self.entry_field.get()
+
     def rename(self, name : str):
         self.name = name
         self.brackets_button.configure(text= f"Br_calc[{self.name}]")
@@ -98,9 +103,16 @@ class CalculatorTab(Frame):
     def get_bounds(self):
         bbox = self.graph_canvas.figure.get_axes()[0].viewLim
         return (
-            (bbox.xmin, bbox.xmax),
-            (bbox.ymin, bbox.ymax)
+            bbox.xmin, bbox.xmax,
+            bbox.ymin, bbox.ymax
             )
+    
+    def get_variables(self):
+        return self.variables_panel.variables
+    
+    def set_variables(self, variables : dict[str, Any]):
+        self.variables_panel.clear_grid()
+        self.variables_panel.update_grid(variables)
     
     def set_output_listbox(self, content : list[str]):
         self.output_variable.set(content)

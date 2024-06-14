@@ -11,6 +11,10 @@ class Controller():
     def run(self):
         self.root.mainloop()
 
-    def plot(self, expression, plotter):
-        data = self.model.generate_plot_data(expression, *plotter.get_bounds())
+    def plot(self, plotter, expression : str = None):
+        data, variables, stack_trace = self.model.generate_plot_data(expression, plotter.get_variables(), plotter.get_bounds())
+        if expression:
+            plotter.set_variables(variables)
         plotter.plot(data)
+        plotter.set_output_listbox(stack_trace[0])
+        plotter.set_stack_listbox(stack_trace[1])

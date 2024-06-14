@@ -13,6 +13,7 @@ def infix_to_postfix(expression):
                 (precedence.get(op1, 0) == precedence.get(op2, 0) and op1 not in right_associative))
 
     output = []
+    stack_trace = ([], [])
     operators = []
     if 'log' in expression:
         expression = expression.replace(', ', ' ')
@@ -35,11 +36,15 @@ def infix_to_postfix(expression):
             while (operators and operators[-1] != '(' and has_higher_precedence(operators[-1], token)):
                 output.append(operators.pop())
             operators.append(token)
+        stack_trace[0].append(output[:])
+        stack_trace[1].append(operators[:])
 
     while operators:
         output.append(operators.pop())
-
-    return ' '.join(output)
+    stack_trace[0].append(output[:])
+    stack_trace[1].append(operators[:])
+    
+    return ' '.join(output), stack_trace
 
 def is_num(token):
     try:

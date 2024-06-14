@@ -1,86 +1,95 @@
-import math, cmath, numpy
+import math, cmath
 from typing import Any
+from .prc import process_expression
+from .infix_to_postfix import infix_to_postfix, is_num
 
 class Calc:
-    """
-    Клас для обчислення виразу у постфіксній формі.
-    """
+
+    FUNCTIONS = ['sin', 'cos', 'tan', 'tg', 'cot', 'ctg', 'asin', 'arcsin', 'acos', 'arccos',
+                     'atan', 'arctan', 'arctg', 'acot', 'arcctg', 'arccot', 'sinh', 'sh', 'cosh',
+                     'ch', 'tanh', 'th', 'coth', 'cth', 'sqrt', 'ln', 'lg', 'log', 'abs']
+
     def __init__(self):
         self.expression = None
-        self.variables = {}
-        self.stack = []
-        self.stack_trace = []
+        self._variables = {}
+        self.stack_trace = None
 
-    def evaluate(self, expression, variables : dict[str, Any]):
-        """
-        Обчислює значення виразу. Якщо у виразі є змінні, просить користувача ввести їх значення.
-        """
-        # Заміна констант 'pi' та 'e' на їх числові значення
-        self.expression = expression.replace("pi", str(math.pi)).replace("e", str(math.e)).replace(",", ".").split()
-    
-        functions = ['sin', 'cos', 'tan', 'tg', 'cot', 'ctg', 'asin', 'arcsin', 'acos', 'arccos',
-                     'atan', 'arctan', 'arctg', 'acot', 'arcctg', 'arccot', 'sinh', 'sh', 'cosh',
-                     'ch', 'tanh', 'th', 'coth', 'cth', 'sqrt', 'ln', 'lg', 'log', 'abs', 'niga']
+    @property
+    def variables(self) -> dict[str, Any]:
+        return self._variables
 
-        for token in self.expression:
+    def evaluate(self, expression : str = None, variables : dict[str, Any] = None):
+        """
+        Evaluates the expression without variable substitution.
+        """
+        _expression = self.expression
+        if expression:
+            _expression, self.stack_trace = infix_to_postfix(process_expression(expression))
+            self._variables = {}
+        if not _expression:
+            return
+        tokens = _expression.split()
+        stack = []
+
+        for token in tokens:
             if token in "+-*/^":
-                # Виконуємо операцію з двома останніми операндами на стеку
-                right = self.stack.pop()
-                left = self.stack.pop()
+                right = stack.pop()
+                left = stack.pop()
                 result = self.apply_operator(token, left, right)
-                self.stack.append(result)
-            elif token in functions:
-                # Виконуємо функцію для останнього операнда на стеку
-                if token == 'log':
-                    operand = [self.stack.pop(), self.stack.pop()]
-                else:
-                    operand = self.stack.pop()
-                result = self.apply_function(token, operand)
-                self.stack.append(result)
-            elif token.isalpha():
-                # Обробка змінних, запит значення у користувача, якщо змінна ще не визначена
-                if token not in variables:
-                    # value = input(f"Введіть значення для змінної {token} (або введіть '{token}', щоб залишити змінну): ")
-                    # if value == token:
-                    #     self.variables[token] = token
-                    # else:
-                    #     self.variables[token] = float(value)
-                    raise ValueError(f"Value of {token} is not defined")
-                self.stack.append(variables[token])
-            else:
-                # Якщо токен є числом
-                self.stack.append(float(token))
-            self.stack_trace.append(self.stack[:])
-        self.expression = self.stack[0]
-        self.stack.clear()
-        return self.evaluate_with_variables()
+                stack.append(result)
 
-    @staticmethod
-    def apply_operator(operator, left, right):
+            elif token in self.FUNCTIONS:
+                if token == 'log':
+                    operand = [stack.pop(), stack.pop()]
+                else:
+                    operand = stack.pop()
+                result = self.apply_function(token, operand)
+                stack.append(result)
+
+            elif token.isalpha():
+                if token in variables:
+                    stack.append(variables[token])
+                    self._variables[token] = variables[token]
+                elif token in self._variables.keys():
+                    stack.append(self._variables[token])
+                else:
+                    stack.append(token)
+                    self._variables[token] = token
+            else:
+                try:
+                    stack.append(float(token))
+                except ValueError:
+                    stack.append(token)
+
+        if expression:
+            self.expression, self.stack_trace = infix_to_postfix(stack[0])
+
+        return stack[0], self.stack_trace
+
+    def apply_operator(self, operator, left, right):
         """
-        Застосовує оператор до двох операндів.
+        Applies the operator to two operands.
         """
-        if isinstance(left, str) or isinstance(right, str):
+        if not (is_num(left) and is_num(right)):
             return f"({left} {operator} {right})"
         if operator == '+':
-            return left + right
+            return float(left) + float(right)
         elif operator == '-':
-            return left - right
+            return float(left) - float(right)
         elif operator == '*':
-            return left * right
+            return float(left) * float(right)
         elif operator == '/':
-            if right == 0:
+            if float(right) == 0:
                 raise ValueError('Undefined: Division by zero')
-            return left / right
+            return float(left) / float(right)
         elif operator == '^':
-            return left ** right
+            return float(left) ** float(right)
     
-    @staticmethod
-    def apply_function(function, operand):
+    def apply_function(self, function, operand):
         """
-        Застосовує математичну функцію до операнда.
+        Applies the mathematical function to the operand.
         """
-        if isinstance(operand, str):
+        if not is_num(operand):
             return f"{function}({operand})"
         
         elif function == 'sin':
@@ -90,9 +99,8 @@ class Calc:
             return math.cos(operand)
         
         elif function == 'tan' or function == 'tg':
-            # num = operand / (math.pi /2)
-            # if not num % 2 == 0:
-            #     raise ValueError('Undefined')
+            if math.isclose(math.cos(operand), 0, abs_tol=1e-15):
+                raise ValueError('Undefined')
             return math.tan(operand)
         
         elif function == 'cot' or function == 'ctg':
@@ -120,16 +128,16 @@ class Calc:
             
         elif function == 'sinh' or function == 'sh':
             if operand > 710:
-                raise ValueError("The value is too big.")
-            elif operand < 710:
+                raise ValueError("The value is too large.")
+            elif operand < -710:
                 raise ValueError("The value is too small.")
             else:
                 return cmath.sinh(operand).real
         
         elif function == 'cosh' or function == 'ch':
             if operand > 710:
-                raise ValueError("The value is too big.")
-            elif operand < 710:
+                raise ValueError("The value is too large.")
+            elif operand < -710:
                 raise ValueError("The value is too small.")
             else:
                 return cmath.cosh(operand).real
@@ -142,14 +150,14 @@ class Calc:
         
         elif function == 'sqrt':
             if operand < 0:
-                raise ValueError('Undefined: Square root of negative number')
+                raise ValueError('Undefined: Square root of negative number.')
             return cmath.sqrt(operand).real
         
         elif function == 'log':
             if isinstance(operand, list):
                 base, value = operand
                 if value <= 0:
-                    raise ValueError('Undefined: Log of non-positive number')
+                    raise ValueError('Undefined: Log of non-positive number.')
                 if base <= 0:
                     raise ValueError('Undefined: Log with base less than or equal to zero.')
                 if base == 1:
@@ -158,33 +166,26 @@ class Calc:
             
         elif function == 'ln':
             if operand <= 0:
-                raise ValueError('Undefined: Log of negative number')
+                raise ValueError('Undefined: Log of negative number.')
             return cmath.log(operand).real
         
         elif function == 'lg':
             if operand <= 0:
-                raise ValueError('Undefined: Log of negative number')
+                raise ValueError('Undefined: Log of negative number.')
             return cmath.log10(operand).real
         
         elif function == 'abs':
             return abs(operand)
+    
+    # def substitute_variables(self, variables):
+    #     """
+    #     Substitutes variable values into the expression and evaluates the result.
+    #     """
+    #     substituted_expression = self.original_expression
         
-        elif function == 'niga':
-            raise Exception('☠☠ nigga why you so black ☠☠')
+    #     # Substitute variable values into the original expression
+    #     for var, value in variables.items():
+    #         substituted_expression = substituted_expression.replace(var, str(value))
         
-    def evaluate_with_variables(self):
-        """
-        Обчислює вираз, який може містити змінні.
-        """
-        if isinstance(self.expression, str):
-            return self.expression
-        elif isinstance(self.expression, (int, float)):
-            return self.expression
-        else:
-            left = self.evaluate_with_variables(self.expression[0])
-            right = self.evaluate_with_variables(self.expression[2])
-            operator = self.expression[1]
-            if isinstance(left, str) or isinstance(right, str):
-                return f"({left} {operator} {right})"
-            else:
-                return eval(f"{left} {operator} {right}")
+    #     # Evaluate the substituted expression
+    #     return self.evaluate(substituted_expression)

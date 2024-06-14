@@ -9,7 +9,7 @@ class View:
         self.controller = controller
         self.size = (800, 600)
         self.background = "#ffe0ca"
-        self.current_tab = None
+        self.current_tab : CalculatorTab = None
         self.tab_count = 0
 
         self._setup_main_layout()
@@ -43,7 +43,8 @@ class View:
     def add_tab(self):
         tab = CalculatorTab(self.notebook, str(self.tab_count))
         tab.pack(side= "top", fill="both", expand= True)
-        tab.entry_field.bind("<Key-Return>", lambda event: self.on_tab_entry_change(event))
+        tab.entry_field.bind("<Key-Return>", lambda _: self.on_tab_entry_change())
+        tab.variables_panel.bind("<<VariablesPanelChange>>", lambda _: self.on_var_panel_change())
         self.notebook.insert(len(self.notebook.tabs()) - 1, tab, text= str(self.tab_count))
         self.notebook.select(tab)
         self.tab_count += 1
@@ -76,6 +77,11 @@ class View:
             return
         self.delete_tab(tab_index)
 
-    def on_tab_entry_change(self, event):
-        expression = event.widget.get()
-        self.controller.plot(expression, self.root.nametowidget(self.current_tab))
+    def on_var_panel_change(self):
+        current_tab = self.root.nametowidget(self.current_tab)
+        self.controller.plot(current_tab)
+
+    def on_tab_entry_change(self):
+        current_tab = self.root.nametowidget(self.current_tab)
+        expression = current_tab.expression
+        self.controller.plot(current_tab, expression)

@@ -12,17 +12,32 @@ print(postfix_expression)
 #вираховуєм результат
 calc_expr = calculate.Calc(postfix_expression)
 
-#вивід результату
+# Обчислення без підстановки змінних
 try:
-    result = calc_expr.evaluate()
-except ValueError as nigga: # "Во всем негры виноваты" - Олексій Кузьмін-Гітлер
-    print(nigga)
+    result_without_vars = calc_expr.evaluate()
+except ValueError as ex:
+    print(ex)
     sys.exit(0)
 
-if isinstance(result, float):
-    result = round(result, 2)
-    print(result)
-else:
-    print(result)
+# Задання значень змінних
+variables = {'x': 2, 'y': 0, 'z': 1}
+calc_expr.variables = variables
 
+# Підстановка і обрахунок змінних у вираз
+try:
+    sub_res = calc_expr.substitute_variables(variables)
+except ValueError as ex:
+    print(ex)
+    sys.exit(0)
 
+# Оцінка виразу без підстановки змінних
+result_without_vars = calc_expr.evaluate()
+
+# Виведення результатів
+if isinstance(result_without_vars, float):
+    result_without_vars = round(result_without_vars, 2)
+print("Результат без підстановки змінних:", result_without_vars)
+
+if isinstance(sub_res, float):
+    sub_res = round(sub_res, 2)
+print("Результат з підстановкою змінних:", sub_res)
